@@ -38,7 +38,12 @@ func main() {
 	userRepository := repo.NewUserRepository(db.GetDB())
 	userService := service.NewUserService(userRepository)
 	userHandler := rest.NewUserHandler(userService)
+	r := router.NewRouter()
 
-	router.InitRouter(userHandler)
-	router.Start("0.0.0.0:8080")
+	r.InitRouter(userHandler)
+	err = r.Start("0.0.0.0:8080")
+	if err != nil {
+		logger.Error("Could not start server", zap.Error(err))
+		return
+	}
 }

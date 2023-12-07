@@ -5,14 +5,20 @@ import (
 	"server/internal/onlend/rest"
 )
 
-var router *echo.Echo
-
-func InitRouter(handler *rest.UserHandler) {
-	router = echo.New()
-
-	router.POST("/api/v1/signup", handler.CreateUser)
+type Router struct {
+	router *echo.Echo
 }
 
-func Start(addr string) error {
-	return router.Start(addr)
+func NewRouter() *Router {
+	return &Router{
+		router: echo.New(),
+	}
+}
+
+func (r *Router) InitRouter(handler *rest.UserHandler) {
+	r.router.POST("/api/v1/signup", handler.CreateUser)
+}
+
+func (r *Router) Start(addr string) error {
+	return r.router.Start(addr)
 }
