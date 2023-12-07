@@ -48,7 +48,7 @@ func main() {
 	r.InitRouter(userHandler)
 	serverAddress := os.Getenv("SERVER_ADDRESS")
 	if serverAddress == "" {
-		serverAddress = "localhost:8080"
+		serverAddress = "localhost:8081"
 	}
 	err = r.Start(serverAddress)
 	if err != nil {
