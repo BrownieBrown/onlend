@@ -5,22 +5,36 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func GenerateHashPassword(password string) (string, error) {
-	l, err := NewZapLogger()
-	if err != nil {
-		return "", err
-	}
-	logger := l.GetLogger()
+const bcryptCostFactor = 14
 
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+func GenerateHash(password string, costFactor int, l Logger) (string, error) {
+	logger := l.GetLogger()
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), costFactor)
 	if err != nil {
-		logger.Error("Error generating password hash", zap.Error(err))
+		logger.Error("Error generating hash", zap.Error(err))
 		return "", err
 	}
 	return string(bytes), nil
 }
 
-func CompareHashPassword(password, hash string) bool {
+func GenerateHashPassword(password string, l Logger) (string, error) {
+	return GenerateHash(password, bcryptCostFactor, l)
+}
+
+func CompareHash(password, hash string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CompareHashPassword(password, hash string, l Logger) error {
+	logger := l.GetLogger()
+	err := CompareHash(password, hash)
+	if err != nil {
+		logger.Error("Error comparing password hash", zap.Error(err))
+		return err
+	}
+	return nil
 }

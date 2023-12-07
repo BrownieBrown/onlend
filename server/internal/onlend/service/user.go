@@ -27,7 +27,7 @@ func (s *service) CreateUser(c context.Context, req *models.CreateUserRequest) (
 	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()
 
-	hashedPassword, err := utils.GenerateHashPassword(req.Password)
+	hashedPassword, err := utils.GenerateHashPassword(req.Password, l)
 	if err != nil {
 		logger.Error("failed to hash password", zap.Error(err))
 		return nil, err
