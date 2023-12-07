@@ -25,6 +25,16 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request data"})
 	}
 
+	if u.Email == "" {
+		logger.Error("email is required")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email is required"})
+	}
+
+	if u.Username == "" {
+		logger.Error("username is required")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+	}
+
 	res, err := h.UserService.CreateUser(c.Request().Context(), &u)
 	if err != nil {
 		logger.Error("failed to create user", zap.Error(err))

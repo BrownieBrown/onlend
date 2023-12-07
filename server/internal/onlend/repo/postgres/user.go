@@ -26,15 +26,18 @@ func NewUserRepository(db DBTX) models.UserRepository {
 
 func (r *repository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	logger := utils.GetLogger()
-	id := uuid.New()
-	query := "INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4) returning id"
+	newUUID := uuid.New()
 
-	err := r.db.QueryRowContext(ctx, query, user.Id, user.Username, user.Email, user.Password).Scan(&id)
+	user.Id = newUUID
+
+	query := "INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4) returning id"
+	var returnedId uuid.UUID
+	err := r.db.QueryRowContext(ctx, query, user.Id, user.Username, user.Email, user.Password).Scan(&returnedId)
 	if err != nil {
 		logger.Error("Error while creating user", zap.Error(err))
 		return &models.User{}, err
 	}
 
-	user.Id = id
+	user.Id = returnedId
 	return user, nil
 }
