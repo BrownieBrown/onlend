@@ -11,6 +11,7 @@ import (
 	"server/internal/onlend/service"
 	"server/internal/utils"
 	"server/pkg/models"
+	"time"
 )
 
 func main() {
@@ -38,9 +39,10 @@ func main() {
 	if err != nil {
 		zl.Error("Could not initialize db connection", zap.Error(err))
 	}
+	timeDuration := time.Duration(2) * time.Second
 
 	userRepository := repo.NewUserRepository(db.GetDB())
-	userService := service.NewUserService(userRepository)
+	userService := service.NewUserService(userRepository, logger, timeDuration)
 	userHandler := rest.NewUserHandler(userService)
 	r := router.NewRouter()
 

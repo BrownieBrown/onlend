@@ -28,7 +28,7 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		logger.Error("failed to bind request", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request data"})
 	}
-
+	// TODO: UserInputValidation
 	if u.Email == "" {
 		logger.Error("email is required")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email is required"})

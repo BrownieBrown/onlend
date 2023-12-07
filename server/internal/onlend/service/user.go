@@ -6,31 +6,35 @@ import (
 	"server/internal/utils"
 	"server/pkg/models"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
-type service struct {
+type Service struct {
 	Repository models.UserRepository
-	timeout    time.Duration
+	Logger     utils.Logger
+	Timeout    time.Duration
 }
 
-func NewUserService(repository models.UserRepository) models.UserService {
-	return &service{repository, time.Duration(2) * time.Second}
+const (
+	failedToHashPasswordErrMsg = "failed to hash password"
+	errorCreatingUserErrMsg    = "Error creating user"
+)
+
+func NewUserService(repository models.UserRepository, logger utils.Logger, timeout time.Duration) *Service {
+	return &Service{Repository: repository, Logger: logger, Timeout: timeout}
 }
 
-func (s *service) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
-	l, err := utils.NewZapLogger()
-	if err != nil {
-		return nil, err
-	}
-	logger := l.GetLogger()
+func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
+	logger := s.Logger.GetLogger()
 
-	ctx, cancel := context.WithTimeout(c, s.timeout)
+	ctx, cancel := context.WithTimeout(c, s.Timeout)
 	defer cancel()
 
-	hashedPassword, err := utils.GenerateHashPassword(req.Password, l)
+	hashedPassword, err := utils.GenerateHashPassword(req.Password, s.Logger)
 	if err != nil {
-		logger.Error("failed to hash password", zap.Error(err))
-		return nil, err
+		logger.Error(failedToHashPasswordErrMsg, zap.Error(err))
+		return nil, errors.Wrap(err, failedToHashPasswordErrMsg)
 	}
 
 	user := &models.User{
@@ -41,8 +45,8 @@ func (s *service) CreateUser(c context.Context, req *models.CreateUserRequest) (
 
 	response, err := s.Repository.CreateUser(ctx, user)
 	if err != nil {
-		logger.Error("Error creating user", zap.Error(err))
-		return nil, err
+		logger.Error(errorCreatingUserErrMsg, zap.Error(err))
+		return nil, errors.Wrap(err, errorCreatingUserErrMsg)
 	}
 
 	res := &models.CreateUserResponse{

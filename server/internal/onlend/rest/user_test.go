@@ -45,7 +45,7 @@ func TestUserCreationWithInvalidData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	handler := rest.NewUserHandler(nil) // No need for a mock service as it should not be called
+	handler := rest.NewUserHandler(nil)
 
 	e := echo.New()
 	invalidRequestBody := bytes.NewBufferString("{invalid-json}")
