@@ -41,7 +41,7 @@ func main() {
 	}
 	timeDuration := time.Duration(2) * time.Second
 
-	userRepository := repo.NewUserRepository(db.GetDB())
+	userRepository := repo.NewUserRepository(db.GetDB(), logger)
 	userService := service.NewUserService(userRepository, logger, timeDuration)
 	userHandler := rest.NewUserHandler(userService, logger)
 	r := router.NewRouter()
