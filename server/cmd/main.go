@@ -15,15 +15,15 @@ import (
 )
 
 func main() {
-	logger, err := utils.NewZapLogger()
+	l, err := utils.NewZapLogger()
 	if err != nil {
 		return
 	}
 
-	zl := logger.GetLogger()
+	logger := l.GetLogger()
 
 	if err := godotenv.Load(); err != nil {
-		zl.Error("Error loading.env file", zap.Error(err))
+		logger.Error("Error loading.env file", zap.Error(err))
 	}
 
 	config := models.PostgresConfig{
@@ -37,19 +37,19 @@ func main() {
 
 	db, err := postgres.InitDB(config)
 	if err != nil {
-		zl.Error("Could not initialize db connection", zap.Error(err))
+		logger.Error("Could not initialize db connection", zap.Error(err))
 	}
 	timeDuration := time.Duration(2) * time.Second
 
-	userRepository := repo.NewUserRepository(db.GetDB(), logger)
-	userService := service.NewUserService(userRepository, logger, timeDuration)
-	userHandler := rest.NewUserHandler(userService, logger)
+	userRepository := repo.NewUserRepository(db.GetDB(), l)
+	userService := service.NewUserService(userRepository, l, timeDuration)
+	userHandler := rest.NewUserHandler(userService, l)
 	r := router.NewRouter()
 
 	r.InitRouter(userHandler)
 	err = r.Start("0.0.0.0:8080")
 	if err != nil {
-		zl.Error("Could not start server", zap.Error(err))
+		logger.Error("Could not start server", zap.Error(err))
 		return
 	}
 }

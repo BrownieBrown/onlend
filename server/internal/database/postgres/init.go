@@ -3,46 +3,68 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"go.uber.org/zap"
-	"server/internal/utils"
 	"server/pkg/models"
 
 	_ "github.com/lib/pq"
 )
 
-type Database struct {
+type Database interface {
+	Close() error
+	GetDB() *sql.DB
+	Open(driverName, dataSourceName string) error
+	Ping() error
+}
+
+type PSQLDatabase struct {
 	db *sql.DB
 }
 
-func InitDB(cfg models.PostgresConfig) (*Database, error) {
-
-	l, err := utils.NewZapLogger()
-	if err != nil {
-		return nil, err
-	}
-	logger := l.GetLogger()
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
-	driver := "postgres"
-
-	db, err := sql.Open(driver, dsn)
-	if err != nil {
-		logger.Error("Error connecting to postgres database", zap.Error(err))
-		return nil, err
-	}
-
-	if err = db.Ping(); err != nil {
-		logger.Error("Error on connecting to postgres database", zap.Error(err))
-		return nil, err
-	}
-
-	return &Database{db: db}, nil
+func NewPSQLDatabase() *PSQLDatabase {
+	return &PSQLDatabase{}
 }
 
-func (db *Database) Close() {
-	db.Close()
+func (db *PSQLDatabase) Close() error {
+	return db.db.Close()
 }
 
-func (db *Database) GetDB() *sql.DB {
+func (db *PSQLDatabase) GetDB() *sql.DB {
 	return db.db
+}
+
+func (db *PSQLDatabase) Sync() error {
+	return nil
+}
+
+func (db *PSQLDatabase) Open(driverName, dataSourceName string) error {
+	var err error
+	db.db, err = sql.Open(driverName, dataSourceName)
+	return err
+}
+
+func (db *PSQLDatabase) Ping() error {
+	err := db.db.Ping()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func InitDB(cfg models.PostgresConfig) (*PSQLDatabase, error) {
+	dsn := buildDSN(cfg)
+
+	psqlDB := NewPSQLDatabase()
+	err := psqlDB.Open("postgres", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = psqlDB.Ping(); err != nil {
+		return nil, err
+	}
+
+	return psqlDB, nil
+}
+
+func buildDSN(cfg models.PostgresConfig) string {
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 }
