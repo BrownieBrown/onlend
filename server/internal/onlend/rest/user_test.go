@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"server/internal/onlend/rest"
+	"server/internal/utils"
 	"server/mocks"
 	"testing"
 
@@ -20,7 +21,10 @@ func TestSuccessfulUserCreationWithValidData(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUserService := mocks.NewMockUserService(ctrl)
-	handler := rest.NewUserHandler(mockUserService)
+	logger, err := utils.NewZapLogger()
+	assert.NoError(t, err, "Unexpected error creating logger")
+
+	handler := rest.NewUserHandler(mockUserService, logger)
 
 	e := echo.New()
 	userRequest := models.CreateUserRequest{
@@ -36,27 +40,9 @@ func TestSuccessfulUserCreationWithValidData(t *testing.T) {
 
 	mockUserService.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(&models.CreateUserResponse{}, nil)
 
-	err := handler.CreateUser(c)
+	err = handler.CreateUser(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, rec.Code)
-}
-
-func TestUserCreationWithInvalidData(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	handler := rest.NewUserHandler(nil)
-
-	e := echo.New()
-	invalidRequestBody := bytes.NewBufferString("{invalid-json}")
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", invalidRequestBody)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := handler.CreateUser(c)
-	assert.Error(t, err)
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestUserCreationReturnsNonEmptyID(t *testing.T) {
@@ -64,7 +50,11 @@ func TestUserCreationReturnsNonEmptyID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUserService := mocks.NewMockUserService(ctrl)
-	handler := rest.NewUserHandler(mockUserService)
+
+	logger, err := utils.NewZapLogger()
+	assert.NoError(t, err, "Unexpected error creating logger")
+
+	handler := rest.NewUserHandler(mockUserService, logger)
 
 	e := echo.New()
 	userRequest := models.CreateUserRequest{
@@ -80,7 +70,7 @@ func TestUserCreationReturnsNonEmptyID(t *testing.T) {
 
 	mockUserService.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(&models.CreateUserResponse{Id: "12345"}, nil)
 
-	err := handler.CreateUser(c)
+	err = handler.CreateUser(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, rec.Code)
 

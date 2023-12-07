@@ -43,7 +43,7 @@ func main() {
 
 	userRepository := repo.NewUserRepository(db.GetDB())
 	userService := service.NewUserService(userRepository, logger, timeDuration)
-	userHandler := rest.NewUserHandler(userService)
+	userHandler := rest.NewUserHandler(userService, logger)
 	r := router.NewRouter()
 
 	r.InitRouter(userHandler)

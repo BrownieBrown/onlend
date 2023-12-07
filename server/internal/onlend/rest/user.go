@@ -10,23 +10,23 @@ import (
 
 type UserHandler struct {
 	UserService models.UserService
+	Logger      utils.Logger
 }
 
-func NewUserHandler(us models.UserService) *UserHandler {
-	return &UserHandler{UserService: us}
+func NewUserHandler(us models.UserService, logger utils.Logger) *UserHandler {
+	return &UserHandler{
+		UserService: us,
+		Logger:      logger,
+	}
 }
 
 func (h *UserHandler) CreateUser(c echo.Context) error {
-	l, err := utils.NewZapLogger()
-	if err != nil {
-		return err
-	}
-	logger := l.GetLogger()
+	logger := h.Logger.GetLogger()
 	var u models.CreateUserRequest
 
 	if err := c.Bind(&u); err != nil {
 		logger.Error("failed to bind request", zap.Error(err))
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request data"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
 	}
 	// TODO: UserInputValidation
 	if u.Email == "" {
@@ -45,5 +45,11 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
 	}
 
-	return c.JSON(http.StatusCreated, res)
+	response := models.CreateUserResponse{
+		Id:       res.Id,
+		Username: res.Username,
+		Email:    res.Email,
+	}
+
+	return c.JSON(http.StatusCreated, response)
 }
