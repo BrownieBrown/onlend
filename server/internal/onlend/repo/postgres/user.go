@@ -17,24 +17,29 @@ type DBTX interface {
 }
 
 type repository struct {
-	db DBTX
+	db     DBTX
+	logger utils.Logger
 }
 
-func NewUserRepository(db DBTX) models.UserRepository {
-	return &repository{db: db}
+func NewUserRepository(db DBTX, logger utils.Logger) models.UserRepository {
+	return &repository{db: db, logger: logger}
 }
 
 func (r *repository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
-	logger := utils.GetLogger()
-	id := uuid.New()
-	query := "INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4) returning id"
+	logger := r.logger.GetLogger()
 
-	err := r.db.QueryRowContext(ctx, query, user.Id, user.Username, user.Email, user.Password).Scan(&id)
+	newUUID := uuid.New()
+
+	user.Id = newUUID
+
+	query := "INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4) returning id"
+	var returnedId uuid.UUID
+	err := r.db.QueryRowContext(ctx, query, user.Id, user.Username, user.Email, user.Password).Scan(&returnedId)
 	if err != nil {
 		logger.Error("Error while creating user", zap.Error(err))
 		return &models.User{}, err
 	}
 
-	user.Id = id
+	user.Id = returnedId
 	return user, nil
 }

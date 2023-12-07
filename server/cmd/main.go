@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"os"
@@ -10,35 +11,55 @@ import (
 	"server/internal/onlend/router"
 	"server/internal/onlend/service"
 	"server/internal/utils"
-	"server/pkg/models"
+	"time"
 )
 
 func main() {
-	utils.InitLogger()
-	logger := utils.GetLogger()
-
-	if err := godotenv.Load(); err != nil {
-		logger.Error("Error loading.env file", zap.Error(err))
-	}
-
-	config := models.PostgresConfig{
-		Host:     os.Getenv("POSTGRES_HOST"),
-		Port:     os.Getenv("POSTGRES_PORT"),
-		User:     os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		DBName:   os.Getenv("POSTGRES_NAME"),
-		SSLMode:  os.Getenv("POSTGRES_SSL_MODE"),
-	}
-
-	db, err := postgres.InitDB(config)
+	l, err := utils.NewZapLogger()
 	if err != nil {
-		logger.Error("Could not initialize db connection", zap.Error(err))
+		fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
+		return
 	}
 
-	userRepository := repo.NewUserRepository(db.GetDB())
-	userService := service.NewUserService(userRepository)
-	userHandler := rest.NewUserHandler(userService)
+	logger := l.GetLogger()
 
-	router.InitRouter(userHandler)
-	router.Start("0.0.0.0:8080")
+	err = godotenv.Load()
+	if err != nil {
+		logger.Fatal("Could not load env file", zap.Error(err))
+	}
+
+	config, err := utils.LoadConfig()
+	if err != nil {
+		logger.Fatal("Could not load postgres config", zap.Error(err))
+	}
+
+	db, err := postgres.InitDB(config.Postgres)
+
+	if err != nil {
+		logger.Fatal("Could not initialize db connection", zap.Error(err))
+	}
+
+	timeoutDuration := time.Duration(2) * time.Second
+	userRepository := repo.NewUserRepository(db.GetDB(), l)
+	userService := service.NewUserService(userRepository, l, timeoutDuration)
+	userHandler := rest.NewUserHandler(userService, l)
+	r := router.NewRouter()
+
+	r.InitRouter(userHandler)
+	serverAddress := os.Getenv("SERVER_ADDRESS")
+	if serverAddress == "" {
+		serverAddress = "localhost:8080"
+	}
+	err = r.Start(serverAddress)
+	if err != nil {
+		logger.Fatal("Could not start server", zap.Error(err))
+		return
+	}
+
+	defer func(db *postgres.PSQLDatabase) {
+		err := db.Close()
+		if err != nil {
+			logger.Fatal("Could not close db connection", zap.Error(err))
+		}
+	}(db)
 }
