@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	"log"
 	"os"
 	"server/internal/database/postgres"
 	repo "server/internal/onlend/repo/postgres"
@@ -18,13 +17,13 @@ import (
 func main() {
 	l, err := utils.NewZapLogger()
 	if err != nil {
-		log.Fatal("Failed to initialize logger", err)
+		return
 	}
 
 	logger := l.GetLogger()
 
 	if err := godotenv.Load(); err != nil {
-		logger.Fatal("Error loading.env file", zap.Error(err))
+		logger.Error("Error loading.env file", zap.Error(err))
 	}
 
 	config := models.PostgresConfig{
@@ -38,7 +37,7 @@ func main() {
 
 	db, err := postgres.InitDB(config)
 	if err != nil {
-		logger.Fatal("Could not initialize db connection", zap.Error(err))
+		logger.Error("Could not initialize db connection", zap.Error(err))
 	}
 	timeDuration := time.Duration(2) * time.Second
 
@@ -48,8 +47,9 @@ func main() {
 	r := router.NewRouter()
 
 	r.InitRouter(userHandler)
-	err = r.Start(os.Getenv("SERVER_ADDRESS"))
+	err = r.Start("0.0.0.0:8080")
 	if err != nil {
-		logger.Fatal("Could not start server", zap.Error(err))
+		logger.Error("Could not start server", zap.Error(err))
+		return
 	}
 }
