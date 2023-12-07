@@ -18,7 +18,11 @@ func NewUserService(repository models.UserRepository) models.UserService {
 }
 
 func (s *service) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
-	logger := utils.GetLogger()
+	l, err := utils.NewZapLogger()
+	if err != nil {
+		return nil, err
+	}
+	logger := l.GetLogger()
 
 	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()

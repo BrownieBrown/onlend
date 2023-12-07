@@ -14,11 +14,15 @@ import (
 )
 
 func main() {
-	utils.InitLogger()
-	logger := utils.GetLogger()
+	logger, err := utils.NewZapLogger()
+	if err != nil {
+		return
+	}
+
+	zl := logger.GetLogger()
 
 	if err := godotenv.Load(); err != nil {
-		logger.Error("Error loading.env file", zap.Error(err))
+		zl.Error("Error loading.env file", zap.Error(err))
 	}
 
 	config := models.PostgresConfig{
@@ -32,7 +36,7 @@ func main() {
 
 	db, err := postgres.InitDB(config)
 	if err != nil {
-		logger.Error("Could not initialize db connection", zap.Error(err))
+		zl.Error("Could not initialize db connection", zap.Error(err))
 	}
 
 	userRepository := repo.NewUserRepository(db.GetDB())
@@ -43,7 +47,7 @@ func main() {
 	r.InitRouter(userHandler)
 	err = r.Start("0.0.0.0:8080")
 	if err != nil {
-		logger.Error("Could not start server", zap.Error(err))
+		zl.Error("Could not start server", zap.Error(err))
 		return
 	}
 }

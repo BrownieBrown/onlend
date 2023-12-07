@@ -6,7 +6,12 @@ import (
 )
 
 func GenerateHashPassword(password string) (string, error) {
-	logger := GetLogger()
+	l, err := NewZapLogger()
+	if err != nil {
+		return "", err
+	}
+	logger := l.GetLogger()
+
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		logger.Error("Error generating password hash", zap.Error(err))

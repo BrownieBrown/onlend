@@ -17,7 +17,11 @@ func NewUserHandler(us models.UserService) *UserHandler {
 }
 
 func (h *UserHandler) CreateUser(c echo.Context) error {
-	logger := utils.GetLogger()
+	l, err := utils.NewZapLogger()
+	if err != nil {
+		return err
+	}
+	logger := l.GetLogger()
 	var u models.CreateUserRequest
 
 	if err := c.Bind(&u); err != nil {

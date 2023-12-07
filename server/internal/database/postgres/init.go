@@ -16,7 +16,11 @@ type Database struct {
 
 func InitDB(cfg models.PostgresConfig) (*Database, error) {
 
-	logger := utils.GetLogger()
+	l, err := utils.NewZapLogger()
+	if err != nil {
+		return nil, err
+	}
+	logger := l.GetLogger()
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 	driver := "postgres"
