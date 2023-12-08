@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"server/internal/utils"
 	"server/pkg/models"
@@ -14,6 +15,7 @@ type Service struct {
 	Repository models.UserRepository
 	Logger     utils.Logger
 	Timeout    time.Duration
+	Config     models.Config
 }
 
 const (
@@ -21,8 +23,13 @@ const (
 	errorCreatingUserErrMsg    = "Error creating user"
 )
 
-func NewUserService(repository models.UserRepository, logger utils.Logger, timeout time.Duration) *Service {
-	return &Service{Repository: repository, Logger: logger, Timeout: timeout}
+func NewUserService(repository models.UserRepository, logger utils.Logger, timeout time.Duration, cfg models.Config) *Service {
+	return &Service{
+		Repository: repository,
+		Logger:     logger,
+		Timeout:    timeout,
+		Config:     cfg,
+	}
 }
 
 func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
@@ -53,6 +60,52 @@ func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (
 		Id:       response.Id.String(),
 		Username: response.Username,
 		Email:    response.Email,
+	}
+
+	return res, nil
+}
+
+func (s *Service) Login(c context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
+	logger := s.Logger.GetLogger()
+
+	ctx, cancel := context.WithTimeout(c, s.Timeout)
+	defer cancel()
+
+	user, err := s.Repository.GetUserByEmail(ctx, req.Email)
+	if err != nil {
+		logger.Error("Error while finding user by email", zap.Error(err))
+		return nil, err
+	}
+
+	err = utils.CompareHashPassword(req.Password, user.Password, s.Logger)
+	if err != nil {
+		logger.Error("Error while comparing password", zap.Error(err))
+		return nil, err
+	}
+
+	jwtSigningMethod := jwt.SigningMethodHS256
+	issuer := "Onlend"
+	expirationTime := time.Duration(s.Config.JWT.JWTExpirationTime) * time.Second
+	expires := jwt.NewNumericDate(time.Now().Add(expirationTime))
+	jwtClaims := &models.JWTClaims{
+		Id:       user.Id.String(),
+		Username: user.Username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    issuer,
+			ExpiresAt: expires,
+		},
+	}
+	token := jwt.NewWithClaims(jwtSigningMethod, jwtClaims)
+	session, err := token.SignedString([]byte(s.Config.JWT.JWTSigningKey))
+	if err != nil {
+		logger.Error("Error while signing JWT", zap.Error(err))
+		return nil, err
+	}
+
+	res := &models.LoginUserResponse{
+		AccessToken: session,
+		Id:          user.Id.String(),
+		Username:    user.Username,
 	}
 
 	return res, nil

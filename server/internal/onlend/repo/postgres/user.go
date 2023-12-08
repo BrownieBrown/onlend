@@ -43,3 +43,17 @@ func (r *repository) CreateUser(ctx context.Context, user *models.User) (*models
 	user.Id = returnedId
 	return user, nil
 }
+
+func (r *repository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	logger := r.logger.GetLogger()
+
+	query := "SELECT id, username, email, password FROM users WHERE email = $1"
+	var user models.User
+	err := r.db.QueryRowContext(ctx, query, email).Scan(&user.Id, &user.Username, &user.Email, &user.Password)
+	if err != nil {
+		logger.Error("Error while finding user by email", zap.Error(err))
+		return &models.User{}, err
+	}
+
+	return &user, nil
+}

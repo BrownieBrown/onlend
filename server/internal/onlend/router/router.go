@@ -17,6 +17,8 @@ func NewRouter() *Router {
 
 func (r *Router) InitRouter(handler *rest.UserHandler) {
 	r.router.POST("/api/v1/signup", handler.CreateUser)
+	r.router.POST("/api/v1/login", handler.Login)
+	r.router.GET("/api/v1/logout", handler.Logout)
 }
 
 func (r *Router) Start(addr string) error {

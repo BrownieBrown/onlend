@@ -15,8 +15,10 @@ type User struct {
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
 }
 
 type UserService interface {
 	CreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error)
+	Login(ctx context.Context, req *LoginUserRequest) (*LoginUserResponse, error)
 }
