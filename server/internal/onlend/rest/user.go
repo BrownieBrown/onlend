@@ -11,35 +11,37 @@ import (
 type UserHandler struct {
 	UserService models.UserService
 	Logger      utils.Logger
+	Config      models.Config
 }
 
-func NewUserHandler(us models.UserService, logger utils.Logger) *UserHandler {
+func NewUserHandler(us models.UserService, logger utils.Logger, cfg models.Config) *UserHandler {
 	return &UserHandler{
 		UserService: us,
 		Logger:      logger,
+		Config:      cfg,
 	}
 }
 
 func (h *UserHandler) CreateUser(c echo.Context) error {
 	logger := h.Logger.GetLogger()
-	var u models.CreateUserRequest
+	var user models.CreateUserRequest
 
-	if err := c.Bind(&u); err != nil {
+	if err := c.Bind(&user); err != nil {
 		logger.Error("failed to bind request", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
 	}
 	// TODO: UserInputValidation
-	if u.Email == "" {
+	if user.Email == "" {
 		logger.Error("email is required")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email is required"})
 	}
 
-	if u.Username == "" {
+	if user.Username == "" {
 		logger.Error("username is required")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
 	}
 
-	res, err := h.UserService.CreateUser(c.Request().Context(), &u)
+	res, err := h.UserService.CreateUser(c.Request().Context(), &user)
 	if err != nil {
 		logger.Error("failed to create user", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
@@ -52,4 +54,60 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, response)
+}
+
+func (h *UserHandler) Login(c echo.Context) error {
+	logger := h.Logger.GetLogger()
+	var user models.LoginUserRequest
+
+	if err := c.Bind(&user); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
+	}
+
+	u, err := h.UserService.Login(c.Request().Context(), &user)
+	if err != nil {
+		logger.Error("failed to login user", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to login user"})
+	}
+
+	cookie := createCookie(h.Config.Cookie, u.AccessToken)
+	c.SetCookie(cookie)
+	res := &models.BasicUserResponse{
+		Id:       u.Id,
+		Username: u.Username,
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *UserHandler) Logout(c echo.Context) error {
+	cookie := unsetCookie(h.Config.Cookie)
+	c.SetCookie(cookie)
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "logout successful"})
+}
+
+func createCookie(cfg models.CookieConfig, accessToken string) *http.Cookie {
+	return &http.Cookie{
+		Name:     cfg.Name,
+		Value:    accessToken,
+		Path:     cfg.Path,
+		Domain:   cfg.Domain,
+		MaxAge:   cfg.MaxAge,
+		Secure:   cfg.Secure,
+		HttpOnly: cfg.HttpOnly,
+	}
+}
+
+func unsetCookie(cfg models.CookieConfig) *http.Cookie {
+	return &http.Cookie{
+		Name:     cfg.Name,
+		Value:    "",
+		Path:     cfg.Path,
+		Domain:   cfg.Domain,
+		MaxAge:   -1,
+		Secure:   cfg.Secure,
+		HttpOnly: cfg.HttpOnly,
+	}
 }

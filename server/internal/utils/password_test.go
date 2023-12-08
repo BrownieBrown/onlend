@@ -20,6 +20,8 @@ func TestGenerateHashPassword(t *testing.T) {
 	password := "password"
 	hash, err := utils.GenerateHashPassword(password, l)
 	assert.NoError(t, err, "Unexpected error generating hash")
+	assert.NoError(t, err)
+	assert.Greater(t, len(hash), 50, "Hashed password should be longer than 50 characters")
 
 	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	assert.NoError(t, err, "Generated hash does not match password")

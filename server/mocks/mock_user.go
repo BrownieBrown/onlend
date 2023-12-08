@@ -54,6 +54,21 @@ func (mr *MockUserRepositoryMockRecorder) CreateUser(ctx, user any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepository)(nil).CreateUser), ctx, user)
 }
 
+// GetUserByEmail mocks base method.
+func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByEmail", ctx, email)
+	ret0, _ := ret[0].(*models.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByEmail indicates an expected call of GetUserByEmail.
+func (mr *MockUserRepositoryMockRecorder) GetUserByEmail(ctx, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByEmail", reflect.TypeOf((*MockUserRepository)(nil).GetUserByEmail), ctx, email)
+}
+
 // MockUserService is a mock of UserService interface.
 type MockUserService struct {
 	ctrl     *gomock.Controller
@@ -90,4 +105,19 @@ func (m *MockUserService) CreateUser(ctx context.Context, req *models.CreateUser
 func (mr *MockUserServiceMockRecorder) CreateUser(ctx, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserService)(nil).CreateUser), ctx, req)
+}
+
+// Login mocks base method.
+func (m *MockUserService) Login(ctx context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Login", ctx, req)
+	ret0, _ := ret[0].(*models.LoginUserResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Login indicates an expected call of Login.
+func (mr *MockUserServiceMockRecorder) Login(ctx, req any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUserService)(nil).Login), ctx, req)
 }

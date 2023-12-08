@@ -41,8 +41,8 @@ func main() {
 
 	timeoutDuration := time.Duration(2) * time.Second
 	userRepository := repo.NewUserRepository(db.GetDB(), l)
-	userService := service.NewUserService(userRepository, l, timeoutDuration)
-	userHandler := rest.NewUserHandler(userService, l)
+	userService := service.NewUserService(userRepository, l, timeoutDuration, config)
+	userHandler := rest.NewUserHandler(userService, l, config)
 	r := router.NewRouter()
 
 	r.InitRouter(userHandler)
