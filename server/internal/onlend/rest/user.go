@@ -30,15 +30,10 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		logger.Error("failed to bind request", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
 	}
-	// TODO: UserInputValidation
-	if user.Email == "" {
-		logger.Error("email is required")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email is required"})
-	}
 
-	if user.Username == "" {
-		logger.Error("username is required")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+	if ok, err := utils.ValidateUserInput(&user); !ok {
+		logger.Error("failed to validate user input", zap.Error(err))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
 	res, err := h.UserService.CreateUser(c.Request().Context(), &user)
@@ -86,6 +81,18 @@ func (h *UserHandler) Logout(c echo.Context) error {
 	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "logout successful"})
+}
+
+func (h *UserHandler) GetAllUsers(c echo.Context) error {
+	logger := h.Logger.GetLogger()
+
+	users, err := h.UserService.GetAllUsers(c.Request().Context())
+	if err != nil {
+		logger.Error("failed to get all users", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get all users"})
+	}
+
+	return c.JSON(http.StatusOK, users)
 }
 
 func createCookie(cfg models.CookieConfig, accessToken string) *http.Cookie {

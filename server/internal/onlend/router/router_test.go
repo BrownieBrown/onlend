@@ -8,7 +8,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"net/http"
 	"net/http/httptest"
+	"server/internal/helpers"
 	"server/internal/onlend/rest"
+	"server/internal/utils"
 	"server/mocks"
 	"server/pkg/models"
 	"strings"
@@ -16,29 +18,16 @@ import (
 )
 
 func TestSuccessfulUserCreation(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	router, handler, ctrl, mockUserService := setup(t)
 	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
 
-	mockUserService := mocks.NewMockUserService(ctrl)
-
-	handler := &rest.UserHandler{
-		UserService: mockUserService,
-	}
-
-	router := echo.New()
 	router.POST("/api/v1/signup", handler.CreateUser)
 
 	reqBody := `{"username": "John Doe", "email": "johndoe@example.com", "password": "password"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", strings.NewReader(reqBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := router.NewContext(req, rec)
+	c, rec := prepareTestRequest(router, reqBody, "/api/v1/signup", http.MethodPost)
 
-	user := &models.CreateUserResponse{
-		Id:       uuid.New().String(),
-		Username: "John Doe",
-		Email:    "john@gmail.com",
-	}
+	user := helpers.CreateUserResponse(uuid.New().String(), "John Doe", "john@gmail.com")
 	mockUserService.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(user, nil)
 
 	err := handler.CreateUser(c)
@@ -55,23 +44,14 @@ func TestSuccessfulUserCreation(t *testing.T) {
 }
 
 func TestUserCreationWithInvalidEmail(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	router, handler, ctrl, _ := setup(t)
 	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
 
-	mockUserService := mocks.NewMockUserService(ctrl)
-
-	handler := &rest.UserHandler{
-		UserService: mockUserService,
-	}
-
-	router := echo.New()
 	router.POST("/api/v1/signup", handler.CreateUser)
 
 	reqBody := `{"username": "John Doe", "email": "", "password": "password"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", strings.NewReader(reqBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := router.NewContext(req, rec)
+	c, rec := prepareTestRequest(router, reqBody, "/api/v1/signup", http.MethodPost)
 
 	err := handler.CreateUser(c)
 	assert.NoError(t, err)
@@ -79,25 +59,61 @@ func TestUserCreationWithInvalidEmail(t *testing.T) {
 }
 
 func TestUserCreationWithInvalidPassword(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	router, handler, ctrl, _ := setup(t)
 	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
 
-	mockUserService := mocks.NewMockUserService(ctrl)
-
-	handler := &rest.UserHandler{
-		UserService: mockUserService,
-	}
-
-	router := echo.New()
 	router.POST("/api/v1/signup", handler.CreateUser)
 
 	reqBody := `{"username": "John Doe", "email": "john.doe@gmail.com", "password": ""}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", strings.NewReader(reqBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := router.NewContext(req, rec)
+	c, rec := prepareTestRequest(router, reqBody, "/api/v1/signup", http.MethodPost)
 
 	err := handler.CreateUser(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestUserCreationWithInvalidUsername(t *testing.T) {
+	router, handler, ctrl, _ := setup(t)
+	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
+
+	router.POST("/api/v1/signup", handler.CreateUser)
+
+	reqBody := `{"username": "", "email": "john.doe@gmail.com", "password": "password"}`
+	c, rec := prepareTestRequest(router, reqBody, "/api/v1/signup", http.MethodPost)
+
+	err := handler.CreateUser(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func setup(t *testing.T) (*echo.Echo, *rest.UserHandler, *gomock.Controller, *mocks.MockUserService) {
+	utils.SetEnvVars()
+	cfg, err := utils.LoadConfig()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	ctrl := gomock.NewController(t)
+	logger, err := utils.NewZapLogger()
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	mockUserService := mocks.NewMockUserService(ctrl)
+
+	handler := rest.NewUserHandler(mockUserService, logger, cfg)
+
+	router := echo.New()
+	return router, handler, ctrl, mockUserService
+}
+
+func prepareTestRequest(router *echo.Echo, requestBody, target, method string) (echo.Context, *httptest.ResponseRecorder) {
+	req := httptest.NewRequest(method, target, strings.NewReader(requestBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := router.NewContext(req, rec)
+
+	return c, rec
 }

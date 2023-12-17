@@ -12,6 +12,9 @@ test:
 server:
 	@go run ./cmd/main.go
 
+userMock:
+	mockgen -source=pkg/models/User.go -destination=mocks/mock_user.go -package=mocks
+
 postgresInit:
 	docker run --name $(POSTGRES_NAME) -p $(POSTGRES_PORT):5432 -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -d postgres:16-alpine
 

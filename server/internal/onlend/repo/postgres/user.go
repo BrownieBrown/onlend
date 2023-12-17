@@ -57,3 +57,28 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*models.
 
 	return &user, nil
 }
+
+func (r *repository) GetAllUsers(ctx context.Context) ([]*models.User, error) {
+	logger := r.logger.GetLogger()
+
+	query := "SELECT id, username, email, password FROM users"
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		logger.Error("Error while getting all users", zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err = rows.Scan(&user.Id, &user.Username, &user.Email, &user.Password)
+		if err != nil {
+			logger.Error("Error while scanning user", zap.Error(err))
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
