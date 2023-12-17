@@ -110,3 +110,28 @@ func (s *Service) Login(c context.Context, req *models.LoginUserRequest) (*model
 
 	return res, nil
 }
+
+func (s *Service) GetAllUsers(c context.Context) ([]*models.GetUserResponse, error) {
+	logger := s.Logger.GetLogger()
+
+	ctx, cancel := context.WithTimeout(c, s.Timeout)
+	defer cancel()
+
+	users, err := s.Repository.GetAllUsers(ctx)
+	if err != nil {
+		logger.Error("Error while getting all users", zap.Error(err))
+		return nil, err
+	}
+
+	var res []*models.GetUserResponse
+	for _, user := range users {
+		u := models.GetUserResponse{
+			Id:       user.Id.String(),
+			Username: user.Username,
+			Email:    user.Email,
+		}
+		res = append(res, &u)
+	}
+
+	return res, nil
+}

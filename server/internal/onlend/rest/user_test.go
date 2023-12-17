@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
+	"server/internal/helpers"
 	"server/internal/onlend/rest"
 	"server/internal/utils"
 	"server/mocks"
@@ -18,72 +19,34 @@ import (
 )
 
 func TestSuccessfulUserCreationWithValidData(t *testing.T) {
-	defer utils.UnsetEnvVars()
-	utils.SetEnvVars()
-
-	ctrl := gomock.NewController(t)
+	mockUserService, handler, ctrl, _ := setup(t)
 	defer ctrl.Finish()
-
-	cfg, err := utils.LoadConfig()
-	assert.NoError(t, err, "Unexpected error loading config")
-
-	mockUserService := mocks.NewMockUserService(ctrl)
-	logger, err := utils.NewZapLogger()
-	assert.NoError(t, err, "Unexpected error creating logger")
-
-	handler := rest.NewUserHandler(mockUserService, logger, cfg)
+	defer utils.UnsetEnvVars()
 
 	e := echo.New()
-	userRequest := models.CreateUserRequest{
-		Username: "testuser",
-		Email:    "testuser@example.com",
-		Password: "password",
-	}
-	requestBody, _ := json.Marshal(userRequest)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", bytes.NewBuffer(requestBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	userRequest := helpers.CreateUserRequest("testUser", "test@gmail.com", "password")
+	c, rec := prepareTestRequest(e, userRequest, "/api/v1/signup", "post")
 
 	mockUserService.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(&models.CreateUserResponse{}, nil)
 
-	err = handler.CreateUser(c)
+	err := handler.CreateUser(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, rec.Code)
 }
 
 func TestUserCreationReturnsNonEmptyID(t *testing.T) {
-	defer utils.UnsetEnvVars()
-	utils.SetEnvVars()
-
-	ctrl := gomock.NewController(t)
+	mockUserService, handler, ctrl, _ := setup(t)
 	defer ctrl.Finish()
-
-	cfg, err := utils.LoadConfig()
-	assert.NoError(t, err, "Unexpected error loading config")
-
-	mockUserService := mocks.NewMockUserService(ctrl)
-
-	logger, err := utils.NewZapLogger()
-	assert.NoError(t, err, "Unexpected error creating logger")
-
-	handler := rest.NewUserHandler(mockUserService, logger, cfg)
+	defer utils.UnsetEnvVars()
 
 	e := echo.New()
-	userRequest := models.CreateUserRequest{
-		Username: "testuser",
-		Email:    "testuser@example.com",
-		Password: "password",
-	}
-	requestBody, _ := json.Marshal(userRequest)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/signup", bytes.NewBuffer(requestBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+
+	userRequest := helpers.CreateUserRequest("testUser", "test@gmail.com", "password")
+	c, rec := prepareTestRequest(e, userRequest, "/api/v1/signup", "post")
 
 	mockUserService.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(&models.CreateUserResponse{Id: "12345"}, nil)
 
-	err = handler.CreateUser(c)
+	err := handler.CreateUser(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
@@ -94,45 +57,22 @@ func TestUserCreationReturnsNonEmptyID(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	defer utils.UnsetEnvVars()
-	utils.SetEnvVars()
-
-	cfg, err := utils.LoadConfig()
-	assert.NoError(t, err, "Unexpected error loading config")
-
-	ctrl := gomock.NewController(t)
+	mockUserService, handler, ctrl, _ := setup(t)
 	defer ctrl.Finish()
-
-	mockUserService := mocks.NewMockUserService(ctrl)
-
-	logger, err := utils.NewZapLogger()
-	assert.NoError(t, err, "Unexpected error creating logger")
-
-	handler := rest.NewUserHandler(mockUserService, logger, cfg)
+	defer utils.UnsetEnvVars()
 
 	e := echo.New()
-	email := "test@gmail.com"
-	password := "password"
-	userRequest := models.LoginUserRequest{
-		Email:    email,
-		Password: password,
-	}
-	requestBody, _ := json.Marshal(userRequest)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/login", bytes.NewBuffer(requestBody))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+
+	userRequest := helpers.CreateLoginUserReq("test@gmail.com", "password")
+	c, rec := prepareTestRequest(e, userRequest, "/api/v1/login", "post")
 
 	id := uuid.New().String()
 	username := "testUser"
-	res := &models.LoginUserResponse{
-		Id:       id,
-		Username: username,
-	}
+	res := helpers.CreateLoginUserResponse(id, username, "token")
 
 	mockUserService.EXPECT().Login(gomock.Any(), gomock.Any()).Return(res, nil)
 
-	err = handler.Login(c)
+	err := handler.Login(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
@@ -140,4 +80,58 @@ func TestLogin(t *testing.T) {
 	err = json.Unmarshal(rec.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, res.Id)
+}
+
+func TestGetAllUsers(t *testing.T) {
+	mockUserService, handler, ctrl, _ := setup(t)
+	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
+
+	e := echo.New()
+	c, rec := prepareTestRequest(e, nil, "/api/v1/users", "get")
+
+	user1 := helpers.CreateGetUserResponse("1", "testUser", "test1@gmail.com")
+	user2 := helpers.CreateGetUserResponse("1", "testUser2", "test2@gmail.com")
+	users := []*models.GetUserResponse{user1, user2}
+	mockUserService.EXPECT().GetAllUsers(gomock.Any()).Return(users, nil)
+
+	err := handler.GetAllUsers(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func setup(t *testing.T) (*mocks.MockUserService, *rest.UserHandler, *gomock.Controller, utils.Logger) {
+	utils.SetEnvVars()
+	cfg, err := utils.LoadConfig()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	ctrl := gomock.NewController(t)
+	logger, err := utils.NewZapLogger()
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	mockUserService := mocks.NewMockUserService(ctrl)
+	handler := rest.NewUserHandler(mockUserService, logger, cfg)
+
+	return mockUserService, handler, ctrl, logger
+}
+
+func prepareTestRequest(e *echo.Echo, requestBody interface{}, target string, method string) (echo.Context, *httptest.ResponseRecorder) {
+	var reqBodyBuffer *bytes.Buffer
+	if requestBody != nil {
+		marshaledBody, _ := json.Marshal(requestBody)
+		reqBodyBuffer = bytes.NewBuffer(marshaledBody)
+	} else {
+		reqBodyBuffer = bytes.NewBuffer(nil)
+	}
+
+	req := httptest.NewRequest(method, target, reqBodyBuffer)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	return c, rec
 }
