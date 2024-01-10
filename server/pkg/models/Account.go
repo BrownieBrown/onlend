@@ -1,17 +1,25 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"context"
+	"github.com/google/uuid"
+)
 
 type Account struct {
 	Id          uuid.UUID `json:"id" db:"id"`
-	UserID      uuid.UUID `json:"userId" db:"userId"`
-	AccountType string    `json:"accountType" db:"accountType"`
+	UserID      uuid.UUID `json:"userId" db:"user_id"`
+	AccountType string    `json:"accountType" db:"account_type"`
 	Balance     float64   `json:"balance" db:"balance"`
 }
 
+type AccountRepository interface {
+	CreateAccount(ctx context.Context, account *Account) (*Account, error)
+	GetAccountById(ctx context.Context, id uuid.UUID) (*Account, error)
+	GetAllAccounts(ctx context.Context) ([]*Account, error)
+}
+
 type AccountService interface {
-	CreateAccount(account *Account) (uint, error)
-	GetAccount(id uint) (*Account, error)
-	GetAllAccounts() ([]*Account, error)
-	DeleteAccount(id uint) error
+	CreateAccount(ctx context.Context, account *Account) error
+	GetAccount(ctx context.Context, id uuid.UUID) (*Account, error)
+	GetAllAccounts(ctx context.Context) ([]*Account, error)
 }

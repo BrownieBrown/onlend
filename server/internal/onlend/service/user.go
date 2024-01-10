@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"server/internal/utils"
 	"server/pkg/models"
@@ -11,11 +12,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Service struct {
-	Repository models.UserRepository
-	Logger     utils.Logger
-	Timeout    time.Duration
-	Config     models.Config
+type UserService struct {
+	Repository     models.UserRepository
+	AccountService *AccountService
+	Logger         utils.Logger
+	Timeout        time.Duration
+	Config         models.Config
 }
 
 const (
@@ -23,16 +25,17 @@ const (
 	errorCreatingUserErrMsg    = "Error creating user"
 )
 
-func NewUserService(repository models.UserRepository, logger utils.Logger, timeout time.Duration, cfg models.Config) *Service {
-	return &Service{
-		Repository: repository,
-		Logger:     logger,
-		Timeout:    timeout,
-		Config:     cfg,
+func NewUserService(repository models.UserRepository, accountService *AccountService, logger utils.Logger, timeout time.Duration, cfg models.Config) *UserService {
+	return &UserService{
+		Repository:     repository,
+		AccountService: accountService,
+		Logger:         logger,
+		Timeout:        timeout,
+		Config:         cfg,
 	}
 }
 
-func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
+func (s *UserService) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
 	logger := s.Logger.GetLogger()
 
 	ctx, cancel := context.WithTimeout(c, s.Timeout)
@@ -56,6 +59,19 @@ func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (
 		return nil, errors.Wrap(err, errorCreatingUserErrMsg)
 	}
 
+	defaultAccount := models.Account{
+		Id:          uuid.New(),
+		UserID:      response.Id,
+		AccountType: "default",
+		Balance:     0,
+	}
+
+	err = s.AccountService.CreateAccount(ctx, &defaultAccount)
+	if err != nil {
+		logger.Error("Error creating default account", zap.Error(err))
+		return nil, err
+	}
+
 	res := &models.CreateUserResponse{
 		Id:       response.Id.String(),
 		Username: response.Username,
@@ -65,7 +81,7 @@ func (s *Service) CreateUser(c context.Context, req *models.CreateUserRequest) (
 	return res, nil
 }
 
-func (s *Service) Login(c context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
+func (s *UserService) Login(c context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
 	logger := s.Logger.GetLogger()
 
 	ctx, cancel := context.WithTimeout(c, s.Timeout)
@@ -111,7 +127,7 @@ func (s *Service) Login(c context.Context, req *models.LoginUserRequest) (*model
 	return res, nil
 }
 
-func (s *Service) GetAllUsers(c context.Context) ([]*models.GetUserResponse, error) {
+func (s *UserService) GetAllUsers(c context.Context) ([]*models.GetUserResponse, error) {
 	logger := s.Logger.GetLogger()
 
 	ctx, cancel := context.WithTimeout(c, s.Timeout)

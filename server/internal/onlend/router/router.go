@@ -15,11 +15,14 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) InitRouter(handler *rest.UserHandler) {
-	r.router.POST("/api/v1/signup", handler.CreateUser)
-	r.router.POST("/api/v1/login", handler.Login)
-	r.router.GET("/api/v1/logout", handler.Logout)
-	r.router.GET("/api/v1/users", handler.GetAllUsers)
+func (r *Router) InitRouter(userHandler *rest.UserHandler, accountHandler *rest.AccountHandler) {
+	r.router.POST("/api/v1/signup", userHandler.CreateUser)
+	r.router.POST("/api/v1/login", userHandler.Login)
+	r.router.GET("/api/v1/logout", userHandler.Logout)
+	r.router.GET("/api/v1/users", userHandler.GetAllUsers)
+
+	r.router.GET("/api/v1/accounts/:id", accountHandler.GetAccount)
+	r.router.GET("/api/v1/accounts", accountHandler.GetAllAccounts)
 }
 
 func (r *Router) Start(addr string) error {

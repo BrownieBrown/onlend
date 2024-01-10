@@ -2,24 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"server/internal/utils"
 	"server/pkg/models"
 )
-
-type DBTX interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	PrepareContext(context.Context, string) (*sql.Stmt, error)
-	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
-}
-
-type repository struct {
-	db     DBTX
-	logger utils.Logger
-}
 
 func NewUserRepository(db DBTX, logger utils.Logger) models.UserRepository {
 	return &repository{db: db, logger: logger}
@@ -37,7 +24,7 @@ func (r *repository) CreateUser(ctx context.Context, user *models.User) (*models
 	err := r.db.QueryRowContext(ctx, query, user.Id, user.Username, user.Email, user.Password).Scan(&returnedId)
 	if err != nil {
 		logger.Error("Error while creating user", zap.Error(err))
-		return &models.User{}, err
+		return nil, err
 	}
 
 	user.Id = returnedId
@@ -52,7 +39,7 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*models.
 	err := r.db.QueryRowContext(ctx, query, email).Scan(&user.Id, &user.Username, &user.Email, &user.Password)
 	if err != nil {
 		logger.Error("Error while finding user by email", zap.Error(err))
-		return &models.User{}, err
+		return nil, err
 	}
 
 	return &user, nil
