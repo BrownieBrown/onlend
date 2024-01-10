@@ -18,7 +18,7 @@ import (
 )
 
 func TestSuccessfulUserCreation(t *testing.T) {
-	router, handler, ctrl, mockUserService := setup(t)
+	router, handler, ctrl, mockUserService := setupUserHandler(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -44,7 +44,7 @@ func TestSuccessfulUserCreation(t *testing.T) {
 }
 
 func TestUserCreationWithInvalidEmail(t *testing.T) {
-	router, handler, ctrl, _ := setup(t)
+	router, handler, ctrl, _ := setupUserHandler(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -59,7 +59,7 @@ func TestUserCreationWithInvalidEmail(t *testing.T) {
 }
 
 func TestUserCreationWithInvalidPassword(t *testing.T) {
-	router, handler, ctrl, _ := setup(t)
+	router, handler, ctrl, _ := setupUserHandler(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -74,7 +74,7 @@ func TestUserCreationWithInvalidPassword(t *testing.T) {
 }
 
 func TestUserCreationWithInvalidUsername(t *testing.T) {
-	router, handler, ctrl, _ := setup(t)
+	router, handler, ctrl, _ := setupUserHandler(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -88,7 +88,7 @@ func TestUserCreationWithInvalidUsername(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
-func setup(t *testing.T) (*echo.Echo, *rest.UserHandler, *gomock.Controller, *mocks.MockUserService) {
+func setupUserHandler(t *testing.T) (*echo.Echo, *rest.UserHandler, *gomock.Controller, *mocks.MockUserService) {
 	utils.SetEnvVars()
 	cfg, err := utils.LoadConfig()
 	if err != nil {

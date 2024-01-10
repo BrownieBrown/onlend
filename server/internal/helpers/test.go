@@ -54,3 +54,12 @@ func CreateUserResponse(is, username, email string) *models.CreateUserResponse {
 		Email:    email,
 	}
 }
+
+func CreateAccount(accountId uuid.UUID, userID uuid.UUID, accountType string, balance float64) *models.Account {
+	return &models.Account{
+		Id:          accountId,
+		UserID:      userID,
+		AccountType: accountType,
+		Balance:     balance,
+	}
+}

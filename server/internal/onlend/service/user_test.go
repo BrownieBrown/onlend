@@ -15,7 +15,7 @@ import (
 )
 
 func TestCreateUser_ValidInput_ReturnsResponse(t *testing.T) {
-	userService, mockRepository, ctrl, _ := setup(t)
+	userService, mockUserRepository, mockAccountRepository, ctrl, _ := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -34,8 +34,15 @@ func TestCreateUser_ValidInput_ReturnsResponse(t *testing.T) {
 		Email:    req.Email,
 		Password: "hashed_password",
 	}
-	mockRepository.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(user, nil)
 
+	account := &models.Account{
+		Id:          uuid.New(),
+		UserID:      user.Id,
+		AccountType: "default",
+		Balance:     0,
+	}
+	mockUserRepository.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(user, nil)
+	mockAccountRepository.EXPECT().CreateAccount(gomock.Any(), gomock.Any()).Return(account, nil)
 	response, err := userService.CreateUser(ctx, req)
 
 	assert.NoError(t, err)
@@ -46,7 +53,7 @@ func TestCreateUser_ValidInput_ReturnsResponse(t *testing.T) {
 }
 
 func TestLogin_ValidInput_ReturnsResponse(t *testing.T) {
-	userService, mockRepository, ctrl, logger := setup(t)
+	userService, mockRepository, _, ctrl, logger := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -68,7 +75,7 @@ func TestLogin_ValidInput_ReturnsResponse(t *testing.T) {
 }
 
 func TestGetAllUsers(t *testing.T) {
-	userService, mockRepository, ctrl, logger := setup(t)
+	userService, mockRepository, _, ctrl, logger := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -85,10 +92,11 @@ func TestGetAllUsers(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-func setup(t *testing.T) (*service.Service, *mocks.MockUserRepository, *gomock.Controller, utils.Logger) {
+func setupMockUserService(t *testing.T) (*service.UserService, *mocks.MockUserRepository, *mocks.MockAccountRepository, *gomock.Controller, utils.Logger) {
 	utils.SetEnvVars()
 	ctrl := gomock.NewController(t)
-	mockRepository := mocks.NewMockUserRepository(ctrl)
+	mockUserRepository := mocks.NewMockUserRepository(ctrl)
+	mockAccountRepository := mocks.NewMockAccountRepository(ctrl)
 
 	l, err := utils.NewZapLogger()
 	if err != nil {
@@ -100,6 +108,7 @@ func setup(t *testing.T) (*service.Service, *mocks.MockUserRepository, *gomock.C
 		t.Fatalf("Failed to load config: %v", err)
 	}
 	timeout := time.Second * 5
-	userService := service.NewUserService(mockRepository, l, timeout, cfg)
-	return userService, mockRepository, ctrl, l
+	mockAccountService := service.NewAccountService(mockAccountRepository, l, timeout, cfg)
+	userService := service.NewUserService(mockUserRepository, mockAccountService, l, timeout, cfg)
+	return userService, mockUserRepository, mockAccountRepository, ctrl, l
 }

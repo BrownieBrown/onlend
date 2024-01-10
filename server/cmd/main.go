@@ -40,12 +40,22 @@ func main() {
 	}
 
 	timeoutDuration := time.Duration(2) * time.Second
+	// repository init
 	userRepository := repo.NewUserRepository(db.GetDB(), l)
-	userService := service.NewUserService(userRepository, l, timeoutDuration, config)
-	userHandler := rest.NewUserHandler(userService, l, config)
-	r := router.NewRouter()
+	accountRepository := repo.NewAccountRepository(db.GetDB(), l)
 
-	r.InitRouter(userHandler)
+	// service init
+	accountService := service.NewAccountService(accountRepository, l, timeoutDuration, config)
+	userService := service.NewUserService(userRepository, accountService, l, timeoutDuration, config)
+
+	// handler init
+	userHandler := rest.NewUserHandler(userService, l, config)
+	accountHandler := rest.NewAccountHandler(accountService, l, config)
+
+	// router init
+	r := router.NewRouter()
+	r.InitRouter(userHandler, accountHandler)
+	
 	serverAddress := os.Getenv("SERVER_ADDRESS")
 	if serverAddress == "" {
 		serverAddress = "localhost:8081"
