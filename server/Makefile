@@ -18,6 +18,9 @@ userMock:
 accountMock:
 	mockgen -source=pkg/models/Account.go -destination=mocks/mock_account.go -package=mocks
 
+transactionMock:
+	mockgen -source=pkg/models/Transaction.go -destination=mocks/mock_transaction.go -package=mocks
+
 postgresInit:
 	docker run --name $(POSTGRES_NAME) -p $(POSTGRES_PORT):5432 -e POSTGRES_USER=$(POSTGRES_USER) -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -d postgres:16-alpine
 

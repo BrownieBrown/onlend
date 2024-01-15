@@ -25,6 +25,8 @@ func TestGetAccount(t *testing.T) {
 	target := "/api/v1/accounts/" + testUUID.String()
 
 	c, rec := prepareTestRequest(e, "", target, http.MethodGet)
+	c.SetParamNames("id")
+	c.SetParamValues(testUUID.String())
 
 	account := helpers.CreateAccount(testUUID, testUserID, "checking", 1000) // testUserID should be defined or relevant
 	mockAccountService.EXPECT().GetAccount(gomock.Any(), testUUID).Return(account, nil)
@@ -46,6 +48,23 @@ func TestGetAllAccounts(t *testing.T) {
 	mockAccountService.EXPECT().GetAllAccounts(gomock.Any()).Return([]*models.Account{account}, nil)
 
 	err := handler.GetAllAccounts(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestUpdateAccount(t *testing.T) {
+	mockAccountService, handler, ctrl := setupAccountHandler(t)
+	defer ctrl.Finish()
+	defer utils.UnsetEnvVars()
+	account := helpers.CreateAccount(uuid.New(), uuid.New(), "checking", 1000)
+	updateAccountRequest := helpers.CreateUpdateAccountRequest(account.Id, 1000, models.Receive)
+
+	e := echo.New()
+	c, rec := prepareTestRequest(e, updateAccountRequest, "/api/v1/accounts", http.MethodPut)
+
+	mockAccountService.EXPECT().UpdateAccount(gomock.Any(), account.Id, updateAccountRequest.Sum, models.Receive).Return(account, nil)
+
+	err := handler.UpdateAccount(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 }

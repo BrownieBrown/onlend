@@ -16,10 +16,14 @@ type AccountRepository interface {
 	CreateAccount(ctx context.Context, account *Account) (*Account, error)
 	GetAccountById(ctx context.Context, id uuid.UUID) (*Account, error)
 	GetAllAccounts(ctx context.Context) ([]*Account, error)
+	GetAccountByUserId(ctx context.Context, id uuid.UUID) (*Account, error)
+	UpdateAccount(ctx context.Context, id uuid.UUID, sum float64) (*Account, error)
 }
 
 type AccountService interface {
 	CreateAccount(ctx context.Context, account *Account) error
 	GetAccount(ctx context.Context, id uuid.UUID) (*Account, error)
 	GetAllAccounts(ctx context.Context) ([]*Account, error)
+	UpdateAccount(ctx context.Context, id uuid.UUID, sum float64, transactionType TransactionType) (*Account, error)
+	GetAccountByUserId(ctx context.Context, id uuid.UUID) (*Account, error)
 }

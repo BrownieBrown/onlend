@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  app:
+    container_name: golang_api
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
+      DATABASE_HOST: ${POSTGRES_HOST}
+      DATABASE_PORT: ${POSTGRES_PORT}
+    tty: true
+    build:
+      context: .  # The directory containing the Dockerfile
+      dockerfile: Dockerfile  # The name of the Dockerfile
+    ports:
+      - "8081:8080"
+    restart: on-failure
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+    networks:
+      - onlend
+
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
+    ports:
+      - "4568:5432"
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - onlend
+
+# Networks to be created to facilitate communication between containers
+networks:
+  onlend:
+    driver: bridge

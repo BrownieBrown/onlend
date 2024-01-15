@@ -70,6 +70,21 @@ func (mr *MockAccountRepositoryMockRecorder) GetAccountById(ctx, id any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountById", reflect.TypeOf((*MockAccountRepository)(nil).GetAccountById), ctx, id)
 }
 
+// GetAccountByUserId mocks base method.
+func (m *MockAccountRepository) GetAccountByUserId(ctx context.Context, id uuid.UUID) (*models.Account, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccountByUserId", ctx, id)
+	ret0, _ := ret[0].(*models.Account)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountByUserId indicates an expected call of GetAccountByUserId.
+func (mr *MockAccountRepositoryMockRecorder) GetAccountByUserId(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByUserId", reflect.TypeOf((*MockAccountRepository)(nil).GetAccountByUserId), ctx, id)
+}
+
 // GetAllAccounts mocks base method.
 func (m *MockAccountRepository) GetAllAccounts(ctx context.Context) ([]*models.Account, error) {
 	m.ctrl.T.Helper()
@@ -83,6 +98,21 @@ func (m *MockAccountRepository) GetAllAccounts(ctx context.Context) ([]*models.A
 func (mr *MockAccountRepositoryMockRecorder) GetAllAccounts(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllAccounts", reflect.TypeOf((*MockAccountRepository)(nil).GetAllAccounts), ctx)
+}
+
+// UpdateAccount mocks base method.
+func (m *MockAccountRepository) UpdateAccount(ctx context.Context, id uuid.UUID, sum float64) (*models.Account, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAccount", ctx, id, sum)
+	ret0, _ := ret[0].(*models.Account)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAccount indicates an expected call of UpdateAccount.
+func (mr *MockAccountRepositoryMockRecorder) UpdateAccount(ctx, id, sum any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccount", reflect.TypeOf((*MockAccountRepository)(nil).UpdateAccount), ctx, id, sum)
 }
 
 // MockAccountService is a mock of AccountService interface.
@@ -137,6 +167,21 @@ func (mr *MockAccountServiceMockRecorder) GetAccount(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccount", reflect.TypeOf((*MockAccountService)(nil).GetAccount), ctx, id)
 }
 
+// GetAccountByUserId mocks base method.
+func (m *MockAccountService) GetAccountByUserId(ctx context.Context, id uuid.UUID) (*models.Account, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccountByUserId", ctx, id)
+	ret0, _ := ret[0].(*models.Account)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountByUserId indicates an expected call of GetAccountByUserId.
+func (mr *MockAccountServiceMockRecorder) GetAccountByUserId(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByUserId", reflect.TypeOf((*MockAccountService)(nil).GetAccountByUserId), ctx, id)
+}
+
 // GetAllAccounts mocks base method.
 func (m *MockAccountService) GetAllAccounts(ctx context.Context) ([]*models.Account, error) {
 	m.ctrl.T.Helper()
@@ -150,4 +195,19 @@ func (m *MockAccountService) GetAllAccounts(ctx context.Context) ([]*models.Acco
 func (mr *MockAccountServiceMockRecorder) GetAllAccounts(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllAccounts", reflect.TypeOf((*MockAccountService)(nil).GetAllAccounts), ctx)
+}
+
+// UpdateAccount mocks base method.
+func (m *MockAccountService) UpdateAccount(ctx context.Context, id uuid.UUID, sum float64, transactionType models.TransactionType) (*models.Account, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAccount", ctx, id, sum, transactionType)
+	ret0, _ := ret[0].(*models.Account)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAccount indicates an expected call of UpdateAccount.
+func (mr *MockAccountServiceMockRecorder) UpdateAccount(ctx, id, sum, transactionType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccount", reflect.TypeOf((*MockAccountService)(nil).UpdateAccount), ctx, id, sum, transactionType)
 }

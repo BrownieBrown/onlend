@@ -11,7 +11,6 @@ import (
 	"server/internal/onlend/router"
 	"server/internal/onlend/service"
 	"server/internal/utils"
-	"time"
 )
 
 func main() {
@@ -39,23 +38,25 @@ func main() {
 		logger.Fatal("Could not initialize db connection", zap.Error(err))
 	}
 
-	timeoutDuration := time.Duration(2) * time.Second
 	// repository init
-	userRepository := repo.NewUserRepository(db.GetDB(), l)
-	accountRepository := repo.NewAccountRepository(db.GetDB(), l)
+	userRepository := repo.NewUserRepository(db.GetDB())
+	accountRepository := repo.NewAccountRepository(db.GetDB())
+	transactionRepository := repo.NewTransactionRepository(db.GetDB())
 
 	// service init
-	accountService := service.NewAccountService(accountRepository, l, timeoutDuration, config)
-	userService := service.NewUserService(userRepository, accountService, l, timeoutDuration, config)
+	accountService := service.NewAccountService(accountRepository, config)
+	userService := service.NewUserService(userRepository, accountService, config)
+	transactionService := service.NewTransactionService(transactionRepository, accountService, config)
 
 	// handler init
 	userHandler := rest.NewUserHandler(userService, l, config)
 	accountHandler := rest.NewAccountHandler(accountService, l, config)
+	transactionHandler := rest.NewTransactionHandler(transactionService, l, config)
 
 	// router init
 	r := router.NewRouter()
-	r.InitRouter(userHandler, accountHandler)
-	
+	r.InitRouter(userHandler, accountHandler, transactionHandler)
+
 	serverAddress := os.Getenv("SERVER_ADDRESS")
 	if serverAddress == "" {
 		serverAddress = "localhost:8081"

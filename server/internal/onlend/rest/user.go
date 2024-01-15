@@ -22,24 +22,24 @@ func NewUserHandler(us models.UserService, logger utils.Logger, cfg models.Confi
 	}
 }
 
-func (h *UserHandler) CreateUser(c echo.Context) error {
+func (h *UserHandler) CreateUser(ctx echo.Context) error {
 	logger := h.Logger.GetLogger()
 	var user models.CreateUserRequest
 
-	if err := c.Bind(&user); err != nil {
+	if err := ctx.Bind(&user); err != nil {
 		logger.Error("failed to bind request", zap.Error(err))
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
 	}
 
 	if ok, err := utils.ValidateUserInput(&user); !ok {
 		logger.Error("failed to validate user input", zap.Error(err))
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	res, err := h.UserService.CreateUser(c.Request().Context(), &user)
+	res, err := h.UserService.CreateUser(ctx.Request().Context(), &user)
 	if err != nil {
 		logger.Error("failed to create user", zap.Error(err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
 	}
 
 	response := models.CreateUserResponse{
@@ -48,39 +48,39 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		Email:    res.Email,
 	}
 
-	return c.JSON(http.StatusCreated, response)
+	return ctx.JSON(http.StatusCreated, response)
 }
 
-func (h *UserHandler) Login(c echo.Context) error {
+func (h *UserHandler) Login(ctx echo.Context) error {
 	logger := h.Logger.GetLogger()
 	var user models.LoginUserRequest
 
-	if err := c.Bind(&user); err != nil {
+	if err := ctx.Bind(&user); err != nil {
 		logger.Error("failed to bind request", zap.Error(err))
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request data"})
 	}
 
-	u, err := h.UserService.Login(c.Request().Context(), &user)
+	u, err := h.UserService.Login(ctx.Request().Context(), &user)
 	if err != nil {
 		logger.Error("failed to login user", zap.Error(err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to login user"})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to login user"})
 	}
 
 	cookie := createCookie(h.Config.Cookie, u.AccessToken)
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 	res := &models.BasicUserResponse{
 		Id:       u.Id,
 		Username: u.Username,
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return ctx.JSON(http.StatusOK, res)
 }
 
-func (h *UserHandler) Logout(c echo.Context) error {
+func (h *UserHandler) Logout(ctx echo.Context) error {
 	cookie := unsetCookie(h.Config.Cookie)
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "logout successful"})
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "logout successful"})
 }
 
 func (h *UserHandler) GetAllUsers(c echo.Context) error {

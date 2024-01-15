@@ -1,24 +1,21 @@
 package utils
 
 import (
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const bcryptCostFactor = 14
 
-func GenerateHash(password string, costFactor int, l Logger) (string, error) {
-	logger := l.GetLogger()
+func GenerateHash(password string, costFactor int) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), costFactor)
 	if err != nil {
-		logger.Error("Error generating hash", zap.Error(err))
 		return "", err
 	}
 	return string(bytes), nil
 }
 
-func GenerateHashPassword(password string, l Logger) (string, error) {
-	return GenerateHash(password, bcryptCostFactor, l)
+func GenerateHashPassword(password string) (string, error) {
+	return GenerateHash(password, bcryptCostFactor)
 }
 
 func CompareHash(password, hash string) error {
@@ -29,11 +26,9 @@ func CompareHash(password, hash string) error {
 	return nil
 }
 
-func CompareHashPassword(password, hash string, l Logger) error {
-	logger := l.GetLogger()
+func CompareHashPassword(password, hash string) error {
 	err := CompareHash(password, hash)
 	if err != nil {
-		logger.Error("Error comparing password hash", zap.Error(err))
 		return err
 	}
 	return nil

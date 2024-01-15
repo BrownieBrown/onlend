@@ -40,3 +40,5 @@ _test
 .DS_Store
 *.tmp
 
+./server/pg_data
+
