@@ -11,11 +11,10 @@ import (
 	"server/mocks"
 	"server/pkg/models"
 	"testing"
-	"time"
 )
 
 func TestCreateUser_ValidInput_ReturnsResponse(t *testing.T) {
-	userService, mockUserRepository, mockAccountRepository, ctrl, _ := setupMockUserService(t)
+	userService, mockUserRepository, mockAccountRepository, ctrl := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -53,7 +52,7 @@ func TestCreateUser_ValidInput_ReturnsResponse(t *testing.T) {
 }
 
 func TestLogin_ValidInput_ReturnsResponse(t *testing.T) {
-	userService, mockRepository, _, ctrl, logger := setupMockUserService(t)
+	userService, mockRepository, _, ctrl := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
@@ -64,7 +63,7 @@ func TestLogin_ValidInput_ReturnsResponse(t *testing.T) {
 	username := "testUser"
 
 	request := helpers.CreateLoginUserReq(email, password)
-	user := helpers.CreateUser(logger, username, email, password)
+	user := helpers.CreateUser(username, email, password)
 
 	mockRepository.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil)
 
@@ -75,14 +74,14 @@ func TestLogin_ValidInput_ReturnsResponse(t *testing.T) {
 }
 
 func TestGetAllUsers(t *testing.T) {
-	userService, mockRepository, _, ctrl, logger := setupMockUserService(t)
+	userService, mockRepository, _, ctrl := setupMockUserService(t)
 	defer ctrl.Finish()
 	defer utils.UnsetEnvVars()
 
 	ctx := context.Background()
 
-	user1 := helpers.CreateUser(logger, "testUser1", "test1@gmail.com", "password")
-	user2 := helpers.CreateUser(logger, "testUser2", "test2@gmail.com", "password")
+	user1 := helpers.CreateUser("testUser1", "test1@gmail.com", "password")
+	user2 := helpers.CreateUser("testUser2", "test2@gmail.com", "password")
 
 	users := []*models.User{user1, user2}
 
@@ -92,23 +91,18 @@ func TestGetAllUsers(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-func setupMockUserService(t *testing.T) (*service.UserService, *mocks.MockUserRepository, *mocks.MockAccountRepository, *gomock.Controller, utils.Logger) {
+func setupMockUserService(t *testing.T) (*service.UserService, *mocks.MockUserRepository, *mocks.MockAccountRepository, *gomock.Controller) {
 	utils.SetEnvVars()
 	ctrl := gomock.NewController(t)
 	mockUserRepository := mocks.NewMockUserRepository(ctrl)
 	mockAccountRepository := mocks.NewMockAccountRepository(ctrl)
 
-	l, err := utils.NewZapLogger()
-	if err != nil {
-		t.Fatalf("Failed to load logger: %v", err)
-	}
-
 	cfg, err := utils.LoadConfig()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
-	timeout := time.Second * 5
-	mockAccountService := service.NewAccountService(mockAccountRepository, l, timeout, cfg)
-	userService := service.NewUserService(mockUserRepository, mockAccountService, l, timeout, cfg)
-	return userService, mockUserRepository, mockAccountRepository, ctrl, l
+
+	mockAccountService := service.NewAccountService(mockAccountRepository, cfg)
+	userService := service.NewUserService(mockUserRepository, mockAccountService, cfg)
+	return userService, mockUserRepository, mockAccountRepository, ctrl
 }

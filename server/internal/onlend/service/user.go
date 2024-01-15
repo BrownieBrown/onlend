@@ -4,47 +4,29 @@ import (
 	"context"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"server/internal/utils"
 	"server/pkg/models"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 type UserService struct {
 	Repository     models.UserRepository
 	AccountService *AccountService
-	Logger         utils.Logger
-	Timeout        time.Duration
 	Config         models.Config
 }
 
-const (
-	failedToHashPasswordErrMsg = "failed to hash password"
-	errorCreatingUserErrMsg    = "Error creating user"
-)
-
-func NewUserService(repository models.UserRepository, accountService *AccountService, logger utils.Logger, timeout time.Duration, cfg models.Config) *UserService {
+func NewUserService(repository models.UserRepository, accountService *AccountService, cfg models.Config) *UserService {
 	return &UserService{
 		Repository:     repository,
 		AccountService: accountService,
-		Logger:         logger,
-		Timeout:        timeout,
 		Config:         cfg,
 	}
 }
 
-func (s *UserService) CreateUser(c context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
-	logger := s.Logger.GetLogger()
-
-	ctx, cancel := context.WithTimeout(c, s.Timeout)
-	defer cancel()
-
-	hashedPassword, err := utils.GenerateHashPassword(req.Password, s.Logger)
+func (s *UserService) CreateUser(ctx context.Context, req *models.CreateUserRequest) (*models.CreateUserResponse, error) {
+	hashedPassword, err := utils.GenerateHashPassword(req.Password)
 	if err != nil {
-		logger.Error(failedToHashPasswordErrMsg, zap.Error(err))
-		return nil, errors.Wrap(err, failedToHashPasswordErrMsg)
+		return nil, err
 	}
 
 	user := &models.User{
@@ -55,8 +37,7 @@ func (s *UserService) CreateUser(c context.Context, req *models.CreateUserReques
 
 	response, err := s.Repository.CreateUser(ctx, user)
 	if err != nil {
-		logger.Error(errorCreatingUserErrMsg, zap.Error(err))
-		return nil, errors.Wrap(err, errorCreatingUserErrMsg)
+		return nil, err
 	}
 
 	defaultAccount := models.Account{
@@ -68,7 +49,6 @@ func (s *UserService) CreateUser(c context.Context, req *models.CreateUserReques
 
 	err = s.AccountService.CreateAccount(ctx, &defaultAccount)
 	if err != nil {
-		logger.Error("Error creating default account", zap.Error(err))
 		return nil, err
 	}
 
@@ -81,21 +61,14 @@ func (s *UserService) CreateUser(c context.Context, req *models.CreateUserReques
 	return res, nil
 }
 
-func (s *UserService) Login(c context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
-	logger := s.Logger.GetLogger()
-
-	ctx, cancel := context.WithTimeout(c, s.Timeout)
-	defer cancel()
-
+func (s *UserService) Login(ctx context.Context, req *models.LoginUserRequest) (*models.LoginUserResponse, error) {
 	user, err := s.Repository.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		logger.Error("Error while finding user by email", zap.Error(err))
 		return nil, err
 	}
 
-	err = utils.CompareHashPassword(req.Password, user.Password, s.Logger)
+	err = utils.CompareHashPassword(req.Password, user.Password)
 	if err != nil {
-		logger.Error("Error while comparing password", zap.Error(err))
 		return nil, err
 	}
 
@@ -114,7 +87,6 @@ func (s *UserService) Login(c context.Context, req *models.LoginUserRequest) (*m
 	token := jwt.NewWithClaims(jwtSigningMethod, jwtClaims)
 	session, err := token.SignedString([]byte(s.Config.JWT.JWTSigningKey))
 	if err != nil {
-		logger.Error("Error while signing JWT", zap.Error(err))
 		return nil, err
 	}
 
@@ -127,15 +99,9 @@ func (s *UserService) Login(c context.Context, req *models.LoginUserRequest) (*m
 	return res, nil
 }
 
-func (s *UserService) GetAllUsers(c context.Context) ([]*models.GetUserResponse, error) {
-	logger := s.Logger.GetLogger()
-
-	ctx, cancel := context.WithTimeout(c, s.Timeout)
-	defer cancel()
-
+func (s *UserService) GetAllUsers(ctx context.Context) ([]*models.GetUserResponse, error) {
 	users, err := s.Repository.GetAllUsers(ctx)
 	if err != nil {
-		logger.Error("Error while getting all users", zap.Error(err))
 		return nil, err
 	}
 

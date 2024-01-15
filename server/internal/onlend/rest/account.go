@@ -23,33 +23,76 @@ func NewAccountHandler(as models.AccountService, logger utils.Logger, cfg models
 	}
 }
 
-func (h *AccountHandler) GetAccount(c echo.Context) error {
+func (h *AccountHandler) GetAccount(ctx echo.Context) error {
 	logger := h.Logger.GetLogger()
-	idStr := c.Param("id")
+	idStr := ctx.Param("id")
 
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		logger.Error("failed to parse uuid", zap.Error(err))
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse uuid"})
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse uuid"})
 	}
 
-	account, err := h.AccountService.GetAccount(c.Request().Context(), id)
+	account, err := h.AccountService.GetAccount(ctx.Request().Context(), id)
 	if err != nil {
 		logger.Error("failed to get account", zap.Error(err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get account"})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get account"})
 	}
 
-	return c.JSON(http.StatusOK, account)
+	return ctx.JSON(http.StatusOK, account)
 }
 
-func (h *AccountHandler) GetAllAccounts(c echo.Context) error {
+func (h *AccountHandler) GetAccountByUserId(ctx echo.Context) error {
 	logger := h.Logger.GetLogger()
+	idStr := ctx.Param("id")
 
-	accounts, err := h.AccountService.GetAllAccounts(c.Request().Context())
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		logger.Error("failed to get all accounts", zap.Error(err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get all accounts"})
+		logger.Error("failed to parse uuid", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse uuid"})
 	}
 
-	return c.JSON(http.StatusOK, accounts)
+	account, err := h.AccountService.GetAccountByUserId(ctx.Request().Context(), id)
+	if err != nil {
+		logger.Error("failed to get account", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get account"})
+	}
+
+	return ctx.JSON(http.StatusOK, account)
+}
+
+func (h *AccountHandler) GetAllAccounts(ctx echo.Context) error {
+	logger := h.Logger.GetLogger()
+
+	accounts, err := h.AccountService.GetAllAccounts(ctx.Request().Context())
+	if err != nil {
+		logger.Error("failed to get all accounts", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get all accounts"})
+	}
+
+	return ctx.JSON(http.StatusOK, accounts)
+}
+
+func (h *AccountHandler) UpdateAccount(ctx echo.Context) error {
+	logger := h.Logger.GetLogger()
+
+	var req models.UpdateAccountRequest
+	if err := ctx.Bind(&req); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to bind request"})
+	}
+
+	id, err := uuid.Parse(req.Id)
+	if err != nil {
+		logger.Error("failed to parse uuid", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse uuid"})
+	}
+
+	account, err := h.AccountService.UpdateAccount(ctx.Request().Context(), id, req.Sum, req.TransactionType)
+	if err != nil {
+		logger.Error("failed to update account", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update account"})
+	}
+
+	return ctx.JSON(http.StatusOK, account)
 }

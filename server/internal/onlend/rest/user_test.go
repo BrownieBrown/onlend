@@ -10,12 +10,12 @@ import (
 	"server/internal/onlend/rest"
 	"server/internal/utils"
 	"server/mocks"
+	"server/pkg/models"
 	"testing"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"server/pkg/models"
 )
 
 func TestSuccessfulUserCreationWithValidData(t *testing.T) {

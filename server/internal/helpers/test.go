@@ -6,8 +6,8 @@ import (
 	"server/pkg/models"
 )
 
-func CreateUser(logger utils.Logger, username, email, password string) *models.User {
-	hashedPassword, _ := utils.GenerateHashPassword(password, logger)
+func CreateUser(username, email, password string) *models.User {
+	hashedPassword, _ := utils.GenerateHashPassword(password)
 	return &models.User{
 		Id:       uuid.New(),
 		Username: username,
@@ -61,5 +61,32 @@ func CreateAccount(accountId uuid.UUID, userID uuid.UUID, accountType string, ba
 		UserID:      userID,
 		AccountType: accountType,
 		Balance:     balance,
+	}
+}
+
+func CreateTransaction(transactionId, senderId, receiverId uuid.UUID, amount float64, transactionType models.TransactionType, status models.Status) *models.Transaction {
+	return &models.Transaction{
+		Id:              transactionId,
+		SenderID:        senderId,
+		ReceiverID:      receiverId,
+		Amount:          amount,
+		TransactionType: transactionType,
+		Status:          status,
+	}
+}
+
+func CreateTransferFundsRequest(senderId, receiverId uuid.UUID, amount float64) *models.TransferFundsRequest {
+	return &models.TransferFundsRequest{
+		SenderID:   senderId,
+		ReceiverID: receiverId,
+		Amount:     amount,
+	}
+}
+
+func CreateUpdateAccountRequest(accountId uuid.UUID, sum float64, transactionType models.TransactionType) *models.UpdateAccountRequest {
+	return &models.UpdateAccountRequest{
+		Id:              accountId.String(),
+		TransactionType: transactionType,
+		Sum:             sum,
 	}
 }
